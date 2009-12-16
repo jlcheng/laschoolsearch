@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<result>
+    {% if addresses %}
+        {% for addr in addresses %}
+            <address key="{{ addr }}">
+    			<school name="John Cheng HS"/>
+       			<school name="Shirley Academy"/>
+    		</address>
+        {% endfor %}
+    {% else %}
+        <message value="no address specified"/>
+    {% endif %}
+</result>

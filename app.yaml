@@ -1,0 +1,30 @@
+application: lasf
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+# Handles favicon.ico
+- url: /favicon.ico
+  static_files: favicon.ico
+  upload: favicon.ico
+
+# Handles stylesheets
+- url: /style
+  static_dir: style
+
+# Handles JavaScript
+- url: /js
+  static_dir: js
+
+- url: /(|index.html)
+  static_files: index.html
+  upload: index.html
+
+# Start application mappings
+- url: /fetch.do
+  script: fetch.py
+
+# Fallback to errors.py if no other mappings are found
+- url: /.*
+  script: /errors.py

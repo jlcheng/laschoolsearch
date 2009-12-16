@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>LAUSD School Finder</title>
-        <script type="text/javascript" src="js/jquery-1.3.2.min.js"></script>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
         <script type="text/javascript" src="js/jquery.form.js"></script>
         <script type="text/javascript" src="js/jquery.timers.js"></script>
         <script type="text/javascript" src="js/jquery.dataTables.js"></script>
@@ -27,22 +27,49 @@ body {
     font-size: 10pt;
 }
 table { 
-    margin: 0 auto; width:500px; clear: both;
+    width:500px; clear: both;
+}
+table thead th {
+    border-bottom: 1px solid black;
 }
 td {
-    font-size: 10pt;
+    padding: 4px;
+    vertical-align: top;
 }
-#results_length { 
+tr.even {
+    background-color: #e4ffd2;
+}
+tr.odd {
+    background-color: #f1ffe7;
+}
+.dataTables_length { 
     width: 40%; 
     float: left; 
 }
-#results_filter {
+.dataTables_filter {
     width: 50%; 
     float: right; 
     text-align: right;
     clear: right;
 }
-
+.dataTables_paginate {
+    float: right;
+    padding: 10px 0 0 0;
+}
+.dataTables_info {
+    float: left;
+    padding: 10px 0 0 0;
+}
+.paging_full_numbers span.paginate_button,
+    .paging_full_numbers span.paginate_active {
+    border: 1px solid #aaa;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    padding: 2px 5px;
+    margin: 0 3px;
+    cursor: pointer;
+    *cursor: hand;
+}
 
 </style>
 <script type="text/javascript">
@@ -59,35 +86,66 @@ address = function(num, street, suffix) {
     this.num = num.trim();
     this.street = street.trim();
     this.suffix = suffix.trim();
-    this.key = this.num + ' ' + this.street + ' ' + this.suffix;
-    this.added = false;
+    this.key = this.num + ':' + this.street + ':' + this.suffix;
+    this.schools = null;
     return this;
 }
+
 function updateSearch(text) {
-    var pat = /(\d{2,})\s+(.+?)\s+(way|street|blvd|boulevard|ave|place|road|rd|plaza|av|st)/gim;
+    var suffixes = ['boulevard', 'street', 'avenue', 'place', 'plaza', 'place', 'blvd', 'road', 'road', 'ave', 'way', 'cir', 'st', 'rd', 'dr', 'ct'];
+    suffixes.sort(function(o1,o2) { return o2.length - o1.length });
+    var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gim');
     var match = null;
+
     while ((match = pat.exec(text))!=null) {
-        var addr = address(match[1], match[2], match[3]);
+        var addr = address(match[2], match[3], match[4]);
         if (!(addr.key in addrTable)) {
             addrTable[addr.key] = addr;
-            dataTable.fnAddData([addr.key, 'foo']);
+        }
+   }
+
+    var addrstr = '';
+    for (var key in addrTable) {
+        var addr = addrTable[key];
+        if ( addr.school == null ) {
+            if ( addrstr != '' ) addrstr += '|'
+            addrstr += key;
         }
     }
-    for (key in addrTable) {
-        console.log(key);
+    var successHandler = function(xml) {
+        var addrs = $(xml).find('address');
+        for (var i = 0; i < addrs.length; i++ ) {
+            var addr = addrs[i];
+            var schoolstr = '';
+            var schools = $(addr).children('');
+            for (var j = 0; j < schools.length; j++ ) {
+                if ( j != 0 ) { schoolstr += '<br/>' }
+                schoolstr += $(schools[j]).attr('name');
+            }
+            dataTable.fnAddData([$(addr).attr('key').replace(/:/g,' '), schoolstr]);
+        }
     }
+    $.ajax({
+        async: false,
+        type: 'GET',
+        url: '/fetch.do?addresses='+addrstr,
+        dataType: 'xml',
+        success: successHandler
+    });
 }
 var dataTable = null;
 $(function() {
-    $('#buffer').everyTime(1500, function(i) {
+    $().everyTime(1500, function(i) {
         var currText = $('#buffer').val();
         if ( currText != $('#prevText').val() ) {
             $('#prevText').val(currText);
             updateSearch(currText);
         }
     });
-    dataTable = $('#results').dataTable();
-	updateSearch($('#buffer').val());
+    dataTable = $('#results').dataTable( {
+        sPaginationType: 'full_numbers'
+    });
+    updateSearch($('#buffer').val());
 });
 </script>
     </head>
