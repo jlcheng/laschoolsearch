@@ -82,24 +82,22 @@ String.prototype.trim = function() {
     return this.replace(/^\s+|\s+$/, '');
 }
 var addrTable = {};
-address = function(num, street, suffix) {
+var address = function(num, street, suffix) {
     this.num = num.trim();
     this.street = street.trim();
     this.suffix = suffix.trim();
     this.key = this.num + ':' + this.street + ':' + this.suffix;
-    this.schools = null;
-    return this;
+    this.displayed = false;
 }
 
+var suffixes =  ['boulevard', 'terrace', 'street', 'avenue', 'drive', 'place', 'plaza', 'blvd', 'road', 'lane', 'ave', 'way', 'st', 'rd', 'dr', 'bl', 'av', 'pz'];
+suffixes.sort(function(o1,o2) { return o2.length - o1.length });
+var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gim');
 function updateSearch(text) {
-    var suffixes = ['boulevard', 'street', 'avenue', 'place', 'plaza', 'place', 'blvd', 'road', 'road', 'ave', 'way', 'cir', 'st', 'rd', 'dr', 'ct'];
-    suffixes.sort(function(o1,o2) { return o2.length - o1.length });
-    var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gim');
     var match = null;
-
     while ((match = pat.exec(text))!=null) {
-        var addr = address(match[2], match[3], match[4]);
-        if (!(addr.key in addrTable)) {
+        var addr = new address(match[2], match[3], match[4]);
+        if ( addr.suffix != null && !(addr.key in addrTable) ) {
             addrTable[addr.key] = addr;
         }
    }
@@ -107,31 +105,37 @@ function updateSearch(text) {
     var addrstr = '';
     for (var key in addrTable) {
         var addr = addrTable[key];
-        if ( addr.school == null ) {
+        if ( addr.displayed != true ) {
             if ( addrstr != '' ) addrstr += '|'
             addrstr += key;
         }
     }
-    var successHandler = function(xml) {
-        var addrs = $(xml).find('address');
-        for (var i = 0; i < addrs.length; i++ ) {
-            var addr = addrs[i];
-            var schoolstr = '';
-            var schools = $(addr).children('');
-            for (var j = 0; j < schools.length; j++ ) {
-                if ( j != 0 ) { schoolstr += '<br/>' }
-                schoolstr += $(schools[j]).attr('name');
+    if ( addrstr != '' ) {
+        var successHandler = function(xml) {
+            var addrs = $(xml).find('address');
+            for (var i = 0; i < addrs.length; i++ ) {
+                var addr = addrs[i];
+                var addrKey = $(addr).attr('key');
+                if (addrKey in addrTable) {
+                    addrTable[addrKey].displayed = true;
+                }
+                var schoolstr = '';
+                var schools = $(addr).children('');
+                for (var j = 0; j < schools.length; j++ ) {
+                    if ( j != 0 ) { schoolstr += '<br/>' }
+                    schoolstr += $(schools[j]).attr('name');
+                }
+                dataTable.fnAddData([addrKey.replace(/:/g,' '), schoolstr]);
             }
-            dataTable.fnAddData([$(addr).attr('key').replace(/:/g,' '), schoolstr]);
         }
+        $.ajax({
+            async: false,
+            type: 'GET',
+            url: '/fetch.do?addresses='+addrstr,
+            dataType: 'xml',
+            success: successHandler
+        });
     }
-    $.ajax({
-        async: false,
-        type: 'GET',
-        url: '/fetch.do?addresses='+addrstr,
-        dataType: 'xml',
-        success: successHandler
-    });
 }
 var dataTable = null;
 $(function() {
