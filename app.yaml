@@ -10,8 +10,8 @@ handlers:
   upload: favicon.ico
 
 # Handles stylesheets
-- url: /style
-  static_dir: style
+- url: /styles
+  static_dir: styles
 
 # Handles JavaScript
 - url: /js
@@ -24,6 +24,8 @@ handlers:
 # Start application mappings
 - url: /fetch.do
   script: fetch.py
+- url: /sleep.do
+  script: test_utils.py
 
 # Fallback to errors.py if no other mappings are found
 - url: /.*

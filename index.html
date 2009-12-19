@@ -2,156 +2,12 @@
 <html>
     <head>
         <title>LAUSD School Finder</title>
+        <link rel="stylesheet" href="styles/main.css" type="text/css" />
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
         <script type="text/javascript" src="js/jquery.form.js"></script>
         <script type="text/javascript" src="js/jquery.timers.js"></script>
         <script type="text/javascript" src="js/jquery.dataTables.js"></script>
-<style type="text/css">
-#buffer {
-    width: 640px;
-    height: 480px;
-}
-.col1 {
-    float: left;
-}
-.col2 {
-    float: left;
-    margin-left: 10px;
-}
-table {
-    border-collapse: collapse; 
-    border-spacing: 0;
-}
-body {
-    font-family: arial;
-    font-size: 10pt;
-}
-table { 
-    width:500px; clear: both;
-}
-table thead th {
-    border-bottom: 1px solid black;
-}
-td {
-    padding: 4px;
-    vertical-align: top;
-}
-tr.even {
-    background-color: #e4ffd2;
-}
-tr.odd {
-    background-color: #f1ffe7;
-}
-.dataTables_length { 
-    width: 40%; 
-    float: left; 
-}
-.dataTables_filter {
-    width: 50%; 
-    float: right; 
-    text-align: right;
-    clear: right;
-}
-.dataTables_paginate {
-    float: right;
-    padding: 10px 0 0 0;
-}
-.dataTables_info {
-    float: left;
-    padding: 10px 0 0 0;
-}
-.paging_full_numbers span.paginate_button,
-    .paging_full_numbers span.paginate_active {
-    border: 1px solid #aaa;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-    padding: 2px 5px;
-    margin: 0 3px;
-    cursor: pointer;
-    *cursor: hand;
-}
-
-</style>
-<script type="text/javascript">
-function _log() {
-    if ( eval('typeof console') != 'undefined' ) {
-        console.log.apply(this, _log.arguments);
-    }
-}
-String.prototype.trim = function() { 
-    return this.replace(/^\s+|\s+$/, '');
-}
-var addrTable = {};
-var address = function(num, street, suffix) {
-    this.num = num.trim();
-    this.street = street.trim();
-    this.suffix = suffix.trim();
-    this.key = this.num + ':' + this.street + ':' + this.suffix;
-    this.displayed = false;
-}
-
-var suffixes =  ['boulevard', 'terrace', 'street', 'avenue', 'drive', 'place', 'plaza', 'blvd', 'road', 'lane', 'ave', 'way', 'st', 'rd', 'dr', 'bl', 'av', 'pz'];
-suffixes.sort(function(o1,o2) { return o2.length - o1.length });
-var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gim');
-function updateSearch(text) {
-    var match = null;
-    while ((match = pat.exec(text))!=null) {
-        var addr = new address(match[2], match[3], match[4]);
-        if ( addr.suffix != null && !(addr.key in addrTable) ) {
-            addrTable[addr.key] = addr;
-        }
-   }
-
-    var addrstr = '';
-    for (var key in addrTable) {
-        var addr = addrTable[key];
-        if ( addr.displayed != true ) {
-            if ( addrstr != '' ) addrstr += '|'
-            addrstr += key;
-        }
-    }
-    if ( addrstr != '' ) {
-        var successHandler = function(xml) {
-            var addrs = $(xml).find('address');
-            for (var i = 0; i < addrs.length; i++ ) {
-                var addr = addrs[i];
-                var addrKey = $(addr).attr('key');
-                if (addrKey in addrTable) {
-                    addrTable[addrKey].displayed = true;
-                }
-                var schoolstr = '';
-                var schools = $(addr).children('');
-                for (var j = 0; j < schools.length; j++ ) {
-                    if ( j != 0 ) { schoolstr += '<br/>' }
-                    schoolstr += $(schools[j]).attr('name');
-                }
-                dataTable.fnAddData([addrKey.replace(/:/g,' '), schoolstr]);
-            }
-        }
-        $.ajax({
-            async: false,
-            type: 'GET',
-            url: '/fetch.do?addresses='+addrstr,
-            dataType: 'xml',
-            success: successHandler
-        });
-    }
-}
-var dataTable = null;
-$(function() {
-    $().everyTime(1500, function(i) {
-        var currText = $('#buffer').val();
-        if ( currText != $('#prevText').val() ) {
-            $('#prevText').val(currText);
-            updateSearch(currText);
-        }
-    });
-    dataTable = $('#results').dataTable( {
-        sPaginationType: 'full_numbers'
-    });
-    updateSearch($('#buffer').val());
-});
-</script>
+        <script type="text/javascript" src="js/application.js"></script>
     </head>
     <body>
         <div class="col1">
@@ -161,6 +17,7 @@ $(function() {
             </form>
         </div>
         <div class="col2">
+            <div id="messageArea">loading...</div>
             <table id="results">
                 <thead>
                     <tr><th>Address</th><th>Schools</th></tr>
@@ -170,5 +27,9 @@ $(function() {
                 </tbody>
             </table>
         </div>
+        <div style="clear:both"/>
+        <div class="footer">&copy; 2009 John Cheng </div>
+        <div style="clear:both;"/>
+        <div id="indicator" style="position:absolute; left: 320px; top: 240px; display: none">loading...</div>
     </body>
 </html>

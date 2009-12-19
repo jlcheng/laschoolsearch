@@ -1,0 +1,76 @@
+#buffer {
+    width: 640px;
+    height: 480px;
+    border: 1px solid #000;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+.col1 {
+    float: left;
+}
+.col2 {
+    float: left;
+    margin-left: 10px;
+}
+table {
+    border-collapse: collapse; 
+    border-spacing: 0;
+}
+body {
+    font-family: arial;
+    font-size: 10pt;
+}
+table { 
+    width:500px; clear: both;
+}
+table thead th {
+    border-bottom: 1px solid black;
+}
+td {
+    padding: 4px;
+    vertical-align: top;
+}
+tr.even {
+    background-color: #CCE6FF;
+}
+tr.odd {
+    background-color: #99CCFF;
+}
+.dataTables_length { 
+    width: 40%; 
+    float: left; 
+}
+.dataTables_filter {
+    width: 50%; 
+    float: right; 
+    text-align: right;
+    clear: right;
+}
+.dataTables_paginate {
+    float: right;
+    padding: 10px 0 0 0;
+}
+.dataTables_info {
+    float: left;
+    padding: 10px 0 0 0;
+}
+.paging_full_numbers span.paginate_button,
+    .paging_full_numbers span.paginate_active {
+    border: 1px solid #aaa;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    padding: 2px 5px;
+    margin: 0 3px;
+    cursor: pointer;
+}
+.footer {
+	text-align: center;
+}
+#messageArea {
+	clear: both;
+    display: none;
+	background-color: #CCE6FF;
+    border: 1px solid black;
+	padding: 3px;
+	width: 240px;
+}

@@ -2,7 +2,7 @@
 <result>
     {% if addresses %}
         {% for addr in addresses %}
-            <address key="{{addr}}">
+            <address key="{{addr}}" success="{{addr.success|lower}}">
                 {% for school in addr.schools %}
                     <school name="{{school}}"/>
                 {% endfor %}

@@ -36,6 +36,7 @@ class Address():
         self.street = None
         self.suffix = None
         self.schools = None
+        self.success = None
         self.key = None
 
     def setData(self, arr):
@@ -66,8 +67,7 @@ class AddressModel(db.Model):
 
 class FetchHandler(webapp.RequestHandler):
     def get(self):
-        self.response.headers['Content-Type'] = 'text/xml'
-        
+        self.response.headers['Content-Type'] = 'text/xml' 
         model = {}
         if hasText(self.request.get('addresses')):
             path = os.path.join(os.path.dirname(__file__), 'fetch.htm')
@@ -75,20 +75,27 @@ class FetchHandler(webapp.RequestHandler):
             for elem in self.request.get('addresses').split('|'):
                 addr = Address()
                 addr.setData(elem.split(':'))
-                addrModel = db.GqlQuery('SELECT * FROM AddressModel WHERE addrKey = :1 LIMIT 1', addr.key).get()
-                if addrModel:
-                    logging.debug('address cached: %s' % addr)
-                    addr.schools = addrModel.schools
-                else:
-                    url = toURL(addr)
-                    logging.debug('address not cached: %s' % addr)
-                    logging.debug('sending request to %s' % url)
-                    addr.schools = parseSchoolFinderResult(urllib2.urlopen(url))
-                    AddressModel(num=addr.num,
-                                 street=addr.street,
-                                 suffix=addr.suffix,
-                                 schools=addr.schools,
-                                 addrKey=addr.key).put()
+                addr.success = False
+                try:
+                    addrModel = db.GqlQuery('SELECT * FROM AddressModel WHERE addrKey = :1 LIMIT 1', addr.key).get()
+                    if addrModel:
+                        logging.debug('address cached: %s' % addr)
+                        addr.schools = addrModel.schools
+                        addr.success = True
+                    else:
+                        url = toURL(addr)
+                        logging.debug('address not cached: %s' % addr)
+                        logging.debug('sending request to %s' % url)
+                        addr.schools = parseSchoolFinderResult(urllib2.urlopen(url))
+                        AddressModel(num=addr.num,
+                                     street=addr.street,
+                                     suffix=addr.suffix,
+                                     schools=addr.schools,
+                                     addrKey=addr.key).put()
+                        addr.success = True
+                except Exception, e:
+                    logging.error(e)
+                    addr.schools = [repr(e)]
                 addrList.append(addr)
             self.response.out.write(template.render(path, {'addresses': addrList}))
         else:
@@ -120,7 +127,6 @@ def hasText(str):
     return str != None and len(str.strip()) != 0
 
 def main():
-    logging.getLogger().setLevel(logging.DEBUG)
     urlmap = [
         # Maps /fetch.do -> FetchHandler
         ( '/fetch.do', FetchHandler ),
