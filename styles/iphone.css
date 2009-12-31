@@ -1,0 +1,11 @@
+#buffer {
+    width: 80px;
+    height: 100px;
+}
+table { 
+    width:180px; clear: both;
+}
+.dataTables_length, .dataTables_filter, .dataTables_info, .dataTables_paginate {
+    display: none;
+}
+
