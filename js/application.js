@@ -17,15 +17,37 @@ var address = function(num, street, suffix) {
 
 var suffixes =  ['boulevard', 'terrace', 'street', 'avenue', 'drive', 'place', 'plaza', 'blvd', 'road', 'lane', 'ave', 'way', 'st', 'rd', 'dr', 'bl', 'av', 'pz'];
 suffixes.sort(function(o1,o2) { return o2.length - o1.length });
+var suffix_map = [
+    [['blvd','bl','boulevard'],'Bl'],
+    [['terrace','te','boulevard'],'Te'],
+    [['street','st'],'St'],
+    [['avenue','ave','av'],'Av'],
+    [['drive','dr'],'Dr'],
+    [['place','pl'],'Pl'],
+    [['plaza','pz'],'Pz'],
+    [['road','rd'],'Rd'],
+    [['lane','ln'],'Ln'],
+    [['way','wy'],'Wy']
+];
+function map_suffix(orig_suffix) {
+	var retval = 'Av'
+	for ( var i = 0; i < suffix_map.length; i++ ) {
+		var list = suffix_map[i][0];
+		if ( list.indexOf(orig_suffix.toLowerCase()) != -1 ) 
+            retval = suffix_map[i][1];
+	}
+	return retval;
+}
 var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gim');
 function updateSearch(text) {
     var match = null;
     while ((match = pat.exec(text))!=null) {
-        var addr = new address(match[2], match[3], match[4]);
+        _log('match4', map_suffix(match[4]));
+        var addr = new address(match[2], match[3], map_suffix(match[4]));
         if ( addr.suffix != null && !(addr.key in addrTable) ) {
             addrTable[addr.key] = addr;
         }
-   }
+	}
 
     var addrstr = '';
     for (var key in addrTable) {
@@ -35,6 +57,7 @@ function updateSearch(text) {
             addrstr += key;
         }
     }
+	_log(addrTable);
     if ( addrstr != '' ) {
         var successHandler = function(xml) {
             var addrs = $(xml).find('address');

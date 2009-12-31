@@ -10,26 +10,6 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 
-
-SUFFIX_MAP = [
-    [['blvd','bl','boulevard'],'Bl'],
-    [['terrace','te','boulevard'],'Te'],
-    [['street','st'],'St'],
-    [['avenue','ave','av'],'Av'],
-    [['drive','dr'],'Dr'],
-    [['place','pl'],'Pl'],
-    [['plaza','pz'],'Pz'],
-    [['road','rd'],'Rd'],
-    [['lane','ln'],'Ln'],
-    [['way','wy'],'Wy']
-]
-def map_suffix(suffix):
-    suffix = suffix.lower()
-    for elem in SUFFIX_MAP:
-        if suffix in elem[0]:
-            return elem[1]
-    return suffix
-
 class Address():
     def __init__(self):
         self.num = None
@@ -43,7 +23,7 @@ class Address():
         self.num = arr[0]
         self.street = arr[1]
         self.suffix = arr[2]
-        self.key = self.num + ':' + self.street + ':' + map_suffix(self.suffix)
+        self.key = self.num + ':' + self.street + ':' + self.suffix
         
     def __repr__(self):
         return self.num + ':' + self.street + ':' + self.suffix
@@ -60,7 +40,7 @@ class AddressModel(db.Model):
         self.num = arr[0]
         self.street = arr[1]
         self.suffix = arr[2]
-        self.addrKey = self.num + ':' + self.street + ':' + map_suffix(self.suffix)
+        self.addrKey = self.num + ':' + self.street + ':' + self.suffix
 
     def __repr__(self):
         return self.num + ':' + self.street + ':' + self.suffix
@@ -102,6 +82,40 @@ class FetchHandler(webapp.RequestHandler):
             path = os.path.join(os.path.dirname(__file__), 'fetch.htm')
             self.response.out.write(template.render(path, {}))
 
+class ReverseGeoCodeHandler(webapp.RequestHandler):
+    def get(self):
+        longitude = self.request.get('longitude')
+        latitude = self.request.get('latitude')
+        path = os.path.join(os.path.dirname(__file__), 'fetch.htm')
+        try:
+            url = 'http://ws.geonames.org/findNearestAddress?lat=%s&lng=%s' % (longitude, latitude)
+            logging.info(url);
+            addr = parseGeonames(urllib2.urlopen(url))
+            addrModel = db.GqlQuery('SELECT * FROM AddressModel WHERE addrKey = :1 LIMIT 1', addr.key).get()
+            if addrModel:
+                logging.debug('address cached: %s' % addr)
+                addr.schools = addrModel.schools
+                addr.success = True
+            else:
+                url = toURL(addr)
+                logging.debug('address not cached: %s' % addr)
+                logging.debug('sending request to %s' % url)
+                addr.schools = parseSchoolFinderResult(urllib2.urlopen(url))
+                AddressModel(num=addr.num,
+                             street=addr.street,
+                             suffix=addr.suffix,
+                             schools=addr.schools,
+                             addrKey=addr.key).put()
+                addr.success = True
+            self.response.out.write(template.render(path, {'addresses': [addr]}))
+        except Exception, e:
+            logging.warn(e);
+            addr = Address()
+            addr.schools= ['Cannot lookup address for this location']
+            addr.setData(('N/A','N/A','N/A'))
+            self.response.out.write(template.render(path, {'addresses': [addr]}))
+       
+
 def parseSchool(school):
     try:
         return school('td')[1]('a')[0].string.replace('&nbsp;',' ')
@@ -117,8 +131,16 @@ def parseSchoolFinderResult(page):
         retval.append(parseSchool(school))
     return retval
 
+def parseGeonames(page):
+    soup = BeautifulSoup(''.join(page.readlines()))
+    addr = Address()
+    addr.setData((soup.findAll('streetNumber')[0],
+                  ' '.join(soup.findAll('street')[0][:-1]),
+                  soup.findAll('street')[0][-1]))
+    return addr
+
 def toURL(address):
-    return 'http://search.lausd.k12.ca.us/cgi-bin/fccgi.exe?Direction=(none)&w3exec=schfinder2&Submit=Submit&StreetName=%s&StreetNumber=%s&Suffix=%s' % ( address.street, address.num, map_suffix(address.suffix) )
+    return 'http://search.lausd.k12.ca.us/cgi-bin/fccgi.exe?Direction=(none)&w3exec=schfinder2&Submit=Submit&StreetName=%s&StreetNumber=%s&Suffix=%s' % ( address.street, address.num, address.suffix )
 
 def hasText(str):
     """
@@ -130,7 +152,7 @@ def main():
     urlmap = [
         # Maps /fetch.do -> FetchHandler
         ( '/fetch.do', FetchHandler ),
-        # define additional mapping here
+        ( '/reverse.do', ReverseGeoCodeHandler ),
         ]
     application = webapp.WSGIApplication(urlmap, debug=True)
     run_wsgi_app(application)

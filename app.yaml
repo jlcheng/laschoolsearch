@@ -24,6 +24,8 @@ handlers:
 # Start application mappings
 - url: /fetch.do
   script: fetch.py
+- url: /reverse.do
+  script: fetch.py
 - url: /sleep.do
   script: test_utils.py
 
