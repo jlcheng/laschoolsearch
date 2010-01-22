@@ -1,6 +1,6 @@
 function _log() {
     if ( eval('typeof console') != 'undefined' ) {
-        console.log.apply(this, _log.arguments);
+		console.log.apply(console, _log.arguments);
     }
 }
 String.prototype.trim = function() { 
@@ -42,7 +42,6 @@ var pat = new RegExp('(\\s|^)(\\d{2,})\\s+(.+?)\\s+('+suffixes.join('|')+')','gi
 function updateSearch(text) {
     var match = null;
     while ((match = pat.exec(text))!=null) {
-        _log('match4', map_suffix(match[4]));
         var addr = new address(match[2], match[3], map_suffix(match[4]));
         if ( addr.suffix != null && !(addr.key in addrTable) ) {
             addrTable[addr.key] = addr;
@@ -57,7 +56,6 @@ function updateSearch(text) {
             addrstr += key;
         }
     }
-	_log(addrTable);
     if ( addrstr != '' ) {
         var successHandler = function(xml) {
             var addrs = $(xml).find('address');
